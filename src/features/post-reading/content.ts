@@ -80,7 +80,6 @@ export async function boot(context?: PostReadingContentAppContext): Promise<void
   recordRuntimeDiagnostic = context?.recordDiagnostic || recordRuntimeDiagnostic;
   const addDisposable = context?.addDisposable || (() => undefined);
   injectStyles();
-  removeLegacyOverlayDock();
   settings = await loadSettings();
   speech = new SpeechController(settings);
   player = new MiniPlayer(settings, {
@@ -192,11 +191,6 @@ export function dispose(): void {
 
 function lifecycleActive(): boolean {
   return booted && settings?.enabled !== false && lifecycleSignal?.aborted !== true;
-}
-
-function removeLegacyOverlayDock(): void {
-  document.getElementById("postReading-overlay-dock-root")?.remove();
-  document.getElementById("postReading-overlay-dock-style")?.remove();
 }
 
 function scheduleScan(): void {

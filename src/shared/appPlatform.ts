@@ -8,7 +8,7 @@ export type AppCostLevel = "cheap" | "moderate" | "heavy";
 export type AppNetworkCost = "none" | "batched" | "eager";
 export type AppWorkerCost = "none" | "optional" | "heavy";
 export type AppDomWriteCost = "small" | "moderate" | "large";
-export type AppLoadTrigger = "startup" | "surface" | "dockOpen" | "idle" | "userAction";
+export type AppLoadTrigger = "startup" | "surface" | "idle" | "userAction";
 export type AppHubCategory = "appearance" | "reading" | "social" | "game" | "media" | "developer";
 export type AppPreset = "lite" | "balanced" | "full";
 export type AppPrivacyLabel = "local-only" | "browser-session" | "remote-api" | "local-files" | "diagnostics";
@@ -30,11 +30,6 @@ export type PostReadingAppManifest = {
   available?: boolean;
   unavailableReason?: string;
   css?: Array<{ id: string; path: string }>;
-  dock?: {
-    label: string;
-    icon?: string;
-    defaultSide?: "left" | "right";
-  };
   defaultEnabled: boolean;
   storageKeys: {
     sync?: string[];
@@ -48,10 +43,6 @@ export type PostReadingAppManifest = {
     category: AppHubCategory;
     shortDescription: string;
     longDescription?: string;
-    rail: {
-      supported: boolean;
-      defaultPinned: boolean;
-    };
     presets: AppPreset[];
     permissionNotes?: string[];
     dataNotes?: string[];
@@ -121,8 +112,6 @@ export type AppDiagnostics = {
   unavailableReason?: string;
   hub?: {
     category: AppHubCategory;
-    railSupported: boolean;
-    railDefaultPinned: boolean;
     presets: AppPreset[];
   };
   loadedAt?: number;

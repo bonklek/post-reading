@@ -121,7 +121,7 @@ The extension is built from these browser entrypoints:
   it to tweet surfaces from `src/shared/twitterScanner.ts`.
 - `src/features/post-reading/content.ts` is the main content implementation. On
   boot it injects styles, loads settings from `chrome.storage.sync`, creates the
-  speech controller, creates the floating player/dock frame, observes settings
+  speech controller, creates the floating player, observes settings
   changes, installs scroll and keyboard listeners, and schedules the first tweet
   scan.
 - `src/standalone/post-reading/background.ts` imports the Post-reading background
@@ -288,8 +288,6 @@ This repository intentionally contains only these extracted paths:
 - `src/shared/backgroundRouter.ts`
 - `src/shared/disposables.ts`
 - `src/shared/extensionRuntime.ts`
-- `src/shared/overlayAppFrame.ts`
-- `src/shared/overlayDock.ts`
 - `src/shared/performanceDiagnostics.ts`
 - `src/shared/performanceMode.ts`
 - `src/shared/twitterScanner.ts`
