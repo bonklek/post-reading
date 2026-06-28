@@ -45,7 +45,7 @@ jobs:
           version="$(node -p "require('./package.json').version")"
           mkdir -p release
           for target in chromium edge brave vivaldi opera firefox; do
-            (cd dist && zip -r "../release/post-reading-${target}-v${version}.zip" "post-reading-${target}")
+            (cd "dist/post-reading-${target}" && zip -r "../../release/post-reading-${target}-v${version}.zip" .)
           done
 
       - name: Upload packaged zips
