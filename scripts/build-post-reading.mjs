@@ -3,9 +3,11 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import esbuild from "esbuild";
 
+const chromiumFamilyTargets = ["chromium", "edge", "brave", "vivaldi", "opera"];
+const supportedTargets = [...chromiumFamilyTargets, "firefox"];
 const watch = process.argv.includes("--watch");
 const target = readTarget();
-const outDir = target === "chromium" ? "dist/post-reading-chromium" : `dist/post-reading-${target}`;
+const outDir = `dist/post-reading-${target}`;
 const packageJson = JSON.parse(await readFile("package.json", "utf8"));
 const contexts = [];
 
@@ -76,8 +78,8 @@ if (watch) {
 
 function readTarget() {
   const value = process.argv.find((arg) => arg.startsWith("--target="))?.split("=")[1] ?? "chromium";
-  if (value !== "chromium") {
-    throw new Error(`Unknown Post-reading target "${value}". Currently supported: chromium.`);
+  if (!supportedTargets.includes(value)) {
+    throw new Error(`Unknown Post-reading target "${value}". Currently supported: ${supportedTargets.join(", ")}.`);
   }
   return value;
 }
@@ -98,9 +100,9 @@ async function writeManifest() {
       "http://localhost/*",
       "http://127.0.0.1/*",
     ],
-    background: {
-      service_worker: "background.js",
-    },
+    background: target === "firefox"
+      ? { scripts: ["background.js"] }
+      : { service_worker: "background.js" },
     content_security_policy: {
       extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
     },

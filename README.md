@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="public/post-reading/post-reading-logo-lockup.png" alt="Post-reading" width="700">
+  <img src="public/post-reading/post-reading-logo-pond-halftone.png" alt="Post-reading" width="700">
 </p>
 
 # Post-reading
 
-Chromium extension for read-aloud controls on X/Twitter posts.
+Browser extension for read-aloud controls on X/Twitter posts.
 
 ## Build and install
 
@@ -13,7 +13,27 @@ pnpm install
 pnpm run build
 ```
 
-Load `dist/post-reading-chromium` as an unpacked extension from `chrome://extensions`.
+Load the matching unpacked extension folder:
+
+| Browser | Build output | Extension loader |
+| --- | --- | --- |
+| Chrome | `dist/post-reading-chromium` | `chrome://extensions` |
+| Microsoft Edge | `dist/post-reading-edge` | `edge://extensions` |
+| Brave | `dist/post-reading-brave` | `brave://extensions` |
+| Vivaldi | `dist/post-reading-vivaldi` | `vivaldi://extensions` |
+| Opera | `dist/post-reading-opera` | `opera://extensions` |
+| Firefox | `dist/post-reading-firefox/manifest.json` | `about:debugging#/runtime/this-firefox` |
+
+Targeted builds are also available:
+
+```powershell
+pnpm run build:chromium
+pnpm run build:edge
+pnpm run build:brave
+pnpm run build:vivaldi
+pnpm run build:opera
+pnpm run build:firefox
+```
 
 ## Feature overview
 
@@ -131,7 +151,7 @@ previous post, and play/pause.
 
 ## Permissions and privacy
 
-The Chromium manifest requests:
+The extension manifest requests:
 
 - `storage` for user settings and local voice-boundary test results.
 - `unlimitedStorage` for the bundled OCR runtime and language data used by
@@ -188,7 +208,7 @@ also return `audioContentType` and `boundaries`. Boundaries are sorted by
 
 OCR is opt-in via `includeImageOcr`. The content script creates a hidden iframe
 for `ocr.html`, which loads `ocrHost.js`. The build copies Tesseract worker,
-core, and English language data into `dist/post-reading-chromium/ocr`. OCR results
+core, and English language data into each target output's `ocr` directory. OCR results
 are cached per image URL for the current page session.
 
 OCR requests have a 15 second host-load timeout and a 45 second recognition
