@@ -6,7 +6,42 @@
 
 Browser extension for read-aloud controls on X/Twitter posts.
 
-## Build and install
+> **From milXdy:** Post-reading is a standalone release of the Post-reading
+> feature from the larger milXdy app platform. It follows the upstream milXdy
+> feature version, so standalone versions may skip numbers. This code is
+> released under the [Viral Public License](LICENSE).
+
+## Install from GitHub
+
+The easiest install path is the latest browser zip from
+[Post-reading Releases](https://github.com/bonklek/post-reading/releases).
+
+1. Open [Post-reading Releases](https://github.com/bonklek/post-reading/releases).
+2. Download `post-reading-chromium-vX.Y.Z.zip` for Chrome.
+3. Extract the zip file.
+4. Open `chrome://extensions`.
+5. Turn on **Developer mode**.
+6. Click **Load unpacked**.
+7. Select the extracted `post-reading-chromium` folder.
+
+Do not use GitHub's **Code > Download ZIP** button for installation. That
+downloads the source repository, not the ready-to-load extension package.
+
+Release zips are built from these output folders:
+
+| Browser | Release zip | Extension loader |
+| --- | --- | --- |
+| Chrome | `post-reading-chromium-vX.Y.Z.zip` | `chrome://extensions` |
+| Microsoft Edge | `post-reading-edge-vX.Y.Z.zip` | `edge://extensions` |
+| Brave | `post-reading-brave-vX.Y.Z.zip` | `brave://extensions` |
+| Vivaldi | `post-reading-vivaldi-vX.Y.Z.zip` | `vivaldi://extensions` |
+| Opera | `post-reading-opera-vX.Y.Z.zip` | `opera://extensions` |
+| Firefox | `post-reading-firefox-vX.Y.Z.zip` | `about:debugging#/runtime/this-firefox` |
+
+For Firefox, extract the zip, open the Firefox runtime debugging page, choose
+**Load Temporary Add-on**, and select the extracted folder's `manifest.json`.
+
+## Build from source
 
 ```powershell
 pnpm install
@@ -34,6 +69,25 @@ pnpm run build:vivaldi
 pnpm run build:opera
 pnpm run build:firefox
 ```
+
+## Releases
+
+This standalone package follows the same version as the source Post-reading
+feature in the larger milXdy app platform it was extracted from. Versions may
+skip numbers when milXdy changes.
+
+To publish installable GitHub zips:
+
+```powershell
+pnpm install
+pnpm run typecheck
+pnpm run build
+git tag v0.3.6
+git push origin v0.3.6
+```
+
+Pushing a `v*` tag runs the release workflow and attaches browser-specific zip
+files to the GitHub Release.
 
 ## Feature overview
 
@@ -245,3 +299,16 @@ This repository intentionally contains only these extracted paths:
 - `scripts/build-post-reading.mjs`
 
 The extraction intentionally keeps only the shared helpers Post-reading still imports.
+
+## License
+
+Post-reading is released under the [Viral Public License](LICENSE). The full
+license text is included in this repository.
+
+<p align="center">
+  <strong>Extracted from the milXdy app platform</strong>
+</p>
+
+<p align="center">
+  <img src="public/post-reading/milxdy-home-logo-wide.png" alt="milXdy" width="700">
+</p>

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Browser extension for read-aloud controls on X/Twitter posts.",
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "build": "pnpm run build:chromium && pnpm run build:edge && pnpm run build:brave && pnpm run build:vivaldi && pnpm run build:opera && pnpm run build:firefox",
     "build:chromium": "node scripts/build-post-reading.mjs --target=chromium",
