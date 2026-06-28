@@ -1,4 +1,5 @@
 import type { PostReadingSettings } from "./shared/types";
+import { hasKnownSyncedBoundaries } from "./voiceSupport";
 
 export type TtsBoundary = {
   charIndex: number;
@@ -72,6 +73,7 @@ export class WebSpeechEngine implements TtsEngine {
     utterance.volume = request.settings.volume;
     const voice = this.chooseVoice(this.getVoices(), request.settings.voiceURI, request.settings.autoVoice);
     if (voice) utterance.voice = voice;
+    const startsWithKnownSyncedBoundaries = hasKnownSyncedBoundaries(voice);
 
     let stopped = false;
     utterance.onboundary = (event) => {
@@ -92,7 +94,7 @@ export class WebSpeechEngine implements TtsEngine {
     window.speechSynthesis.speak(utterance);
 
     return {
-      hasSyncedBoundaries: true,
+      hasSyncedBoundaries: startsWithKnownSyncedBoundaries,
       pause: () => window.speechSynthesis.pause(),
       resume: () => window.speechSynthesis.resume(),
       stop: () => {

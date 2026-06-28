@@ -2,6 +2,7 @@ import { icon } from "./icons";
 import type { BoundarySupport } from "./speech";
 import type { OcrProgress } from "./ocr";
 import type { PostReadingSettings, SpeechState } from "./shared/types";
+import { knownVoiceBoundarySupport } from "./voiceSupport";
 
 type PlayerActions = {
   onPauseResume: () => void;
@@ -184,7 +185,7 @@ export class MiniPlayer {
     const voiceSelect = document.createElement("select");
     voiceSelect.append(new Option("System default", ""));
     for (const voice of sortedVoices) {
-      const support = this.boundarySupport.get(voice.voiceURI) ?? "unknown";
+      const support = this.boundarySupport.get(voice.voiceURI) ?? knownVoiceBoundarySupport(voice);
       const suffix = support === "supported" ? " - highlights" : support === "unsupported" ? " - no word sync" : "";
       voiceSelect.append(new Option(`${voice.name} (${voice.lang})${suffix}`, voice.voiceURI));
     }
@@ -324,6 +325,12 @@ export class MiniPlayer {
     this.renderSettings();
     for (const voice of voices) {
       if (this.boundarySupport.get(voice.voiceURI) === "supported") continue;
+      if (knownVoiceBoundarySupport(voice) === "supported") {
+        this.boundarySupport.set(voice.voiceURI, "supported");
+        this.actions.onBoundarySupportChange(Object.fromEntries(this.boundarySupport));
+        this.renderSettings();
+        continue;
+      }
       const supported = await this.actions.probeBoundarySupport(voice);
       this.boundarySupport.set(voice.voiceURI, supported ? "supported" : "unsupported");
       this.actions.onBoundarySupportChange(Object.fromEntries(this.boundarySupport));
@@ -339,8 +346,8 @@ function sortVoicesByBoundarySupport(
   boundarySupport: Map<string, BoundarySupport>,
 ): SpeechSynthesisVoice[] {
   return [...voices].sort((left, right) => {
-    const leftRank = supportRank(boundarySupport.get(left.voiceURI) ?? "unknown");
-    const rightRank = supportRank(boundarySupport.get(right.voiceURI) ?? "unknown");
+    const leftRank = supportRank(boundarySupport.get(left.voiceURI) ?? knownVoiceBoundarySupport(left));
+    const rightRank = supportRank(boundarySupport.get(right.voiceURI) ?? knownVoiceBoundarySupport(right));
     if (leftRank !== rightRank) return leftRank - rightRank;
     const leftEnglish = /^en[-_]?/i.test(left.lang) ? 0 : 1;
     const rightEnglish = /^en[-_]?/i.test(right.lang) ? 0 : 1;
