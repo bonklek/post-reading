@@ -1,3 +1,13 @@
 node_modules/
 dist/
 *.log
+
+# Generated accessory logo/background experiments not used by the extension or README.
+public/post-reading/post-reading-logo-chromakey.png
+public/post-reading/post-reading-logo-lockup-transparent.png
+public/post-reading/post-reading-logo-lockup.png
+public/post-reading/post-reading-logo-pond-halftone-retro.png
+public/post-reading/post-reading-pixel-pond-background-with-lotuses.png
+public/post-reading/post-reading-pixel-pond-background.png
+public/post-reading/post-reading-pixel-pond-halftone-pink.png
+public/post-reading/post-reading-pixel-pond-halftone.png
