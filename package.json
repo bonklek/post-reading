@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Standalone Chromium extension for read-aloud controls on X/Twitter posts.",
+  "description": "Chromium extension for read-aloud controls on X/Twitter posts.",
   "license": "UNLICENSED",
   "scripts": {
     "build": "node scripts/build-post-reading.mjs --target=chromium",

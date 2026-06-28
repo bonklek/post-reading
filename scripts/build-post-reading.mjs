@@ -56,7 +56,7 @@ await buildOrWatch({
 });
 
 if (watch) {
-  console.log(`Watching standalone Post-reading ${target} extension files...`);
+  console.log(`Watching Post-reading ${target} extension files...`);
 } else {
   const missing = [
     "manifest.json",
@@ -70,7 +70,7 @@ if (watch) {
     "ocr/lang/eng.traineddata.gz",
   ].filter((file) => !existsSync(`${outDir}/${file}`));
   if (missing.length > 0) {
-    throw new Error(`Missing standalone Post-reading output: ${missing.join(", ")}`);
+    throw new Error(`Missing Post-reading output: ${missing.join(", ")}`);
   }
 }
 
