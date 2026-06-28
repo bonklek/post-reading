@@ -175,16 +175,16 @@ Settings are stored in `chrome.storage.sync` and normalized by
 | `ttsEngine` | `web-speech` | TTS backend: browser Web Speech or custom HTTP. |
 | `customTtsEndpoint` | `null` | HTTP endpoint for custom TTS POST requests. |
 | `customTtsTimingMode` | `engine` | Use custom endpoint timing boundaries when available, or turn them off. |
-| `autoplayNext` | `false` | Continue to the next post after speech completes. |
-| `autoplayMode` | `visible` | Next-post strategy: visible posts only, or autoscroll forward. |
+| `autoplayNext` | `true` | Continue to the next post after speech completes. |
+| `autoplayMode` | `autoscroll` | Next-post strategy: visible posts only, or autoscroll forward. |
 | `skipPromotedPosts` | `true` | Skip promoted posts during next/previous navigation. |
-| `endOfTweetDing` | `false` | Play a short sound after a post finishes. |
+| `endOfTweetDing` | `true` | Play a short sound after a post finishes. |
 | `includeQuotes` | `true` | Include quoted post text. |
-| `fetchFullQuotes` | `false` | Fetch fuller quote text instead of relying only on visible preview text. |
+| `fetchFullQuotes` | `true` | Fetch fuller quote text instead of relying only on visible preview text. |
 | `fullQuoteDisplay` | `scroll` | Quote preview rendering: hidden, expanded inline, or scrollable preview. |
 | `includeHyperlinks` | `false` | Include raw hyperlink text in the spoken output. |
 | `includeImageAltText` | `true` | Read available image alt text. |
-| `includeImageOcr` | `false` | Run OCR on attached images and include recognized text. |
+| `includeImageOcr` | `true` | Run OCR on attached images and include recognized text. |
 | `includeLinkPreviews` | `true` | Include link card preview text. |
 | `expandShowMore` | `true` | Click visible `"Show more"` controls before extraction. |
 | `activeTweetHighlight` | `true` | Highlight the currently active post. |
@@ -260,10 +260,11 @@ also return `audioContentType` and `boundaries`. Boundaries are sorted by
 
 ## OCR
 
-OCR is opt-in via `includeImageOcr`. The content script creates a hidden iframe
-for `ocr.html`, which loads `ocrHost.js`. The build copies Tesseract worker,
-core, and English language data into each target output's `ocr` directory. OCR results
-are cached per image URL for the current page session.
+OCR is enabled by default via `includeImageOcr`. The content script creates a
+hidden iframe for `ocr.html`, which loads `ocrHost.js`. The build copies
+Tesseract worker, core, and English language data into each target output's
+`ocr` directory. OCR results are cached per image URL for the current page
+session.
 
 OCR requests have a 15 second host-load timeout and a 45 second recognition
 timeout. The player shows progress and exposes a skip control.

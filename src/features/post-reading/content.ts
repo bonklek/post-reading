@@ -9,7 +9,6 @@ import { playEndDing } from "./sounds";
 import { SpeechController } from "./speech";
 import { injectStyles } from "./styles";
 import { loadSettings, loadVoiceBoundarySupport, observeSettings, saveSettings, saveVoiceBoundarySupport } from "./storage";
-import { createOverlayAppFrame, type OverlayAppFrame } from "../../shared/overlayAppFrame";
 import type { TwitterSurface } from "../../shared/twitterScanner";
 import { recordFeatureTiming } from "../../shared/performanceDiagnostics";
 import type { AppRuntimeScheduler, PostReadingContentAppContext } from "../../shared/appPlatform";
@@ -18,7 +17,6 @@ const processed = new WeakMap<HTMLElement, string>();
 let settings: PostReadingSettings;
 let speech: SpeechController;
 let player: MiniPlayer;
-let appFrame: OverlayAppFrame | null = null;
 let currentTweet: HTMLElement | null = null;
 const pendingTweets = new Map<HTMLElement, { actionRow: HTMLElement | null }>();
 const POST_READING_BUTTON_SLOT = '[data-post-reading-button-slot="true"]';
@@ -82,6 +80,7 @@ export async function boot(context?: PostReadingContentAppContext): Promise<void
   recordRuntimeDiagnostic = context?.recordDiagnostic || recordRuntimeDiagnostic;
   const addDisposable = context?.addDisposable || (() => undefined);
   injectStyles();
+  removeLegacyOverlayDock();
   settings = await loadSettings();
   speech = new SpeechController(settings);
   player = new MiniPlayer(settings, {
@@ -109,28 +108,12 @@ export async function boot(context?: PostReadingContentAppContext): Promise<void
     getPreferredVoice: () => speech.getPreferredVoice(),
     probeBoundarySupport: (voice) => speech.probeBoundarySupport(voice),
   });
-  appFrame = createOverlayAppFrame({
-    id: "post-reading",
-    label: "Post-reading",
-    icon: postReadingDockIcon(),
-    title: "Post-reading controls",
-    isOpen: () => player.isVisible(),
-    onOpen: () => {
-      player.show();
-      updateDockState();
-    },
-    onClose: () => {
-      player.close();
-      updateDockState();
-    },
-  });
   void loadVoiceBoundarySupport().then((results) => {
     if (lifecycleActive()) player.setBoundarySupport(results);
   });
   addDisposable(speech.subscribe((state) => {
     player.updateState(state);
     updateHighlight(state);
-    updateDockState();
   }));
   speech.onComplete(() => {
     if (!lifecycleActive()) return;
@@ -191,12 +174,10 @@ export function disable(): void {
 
 export function open(): void {
   player?.show();
-  updateDockState();
 }
 
 export function close(): void {
   player?.close();
-  updateDockState();
 }
 
 export function dispose(): void {
@@ -204,8 +185,6 @@ export function dispose(): void {
   cancelPendingScan?.();
   cancelPendingScan = null;
   pendingTweets.clear();
-  appFrame?.remove();
-  appFrame = null;
   recordRuntimeDiagnostic = () => undefined;
   lifecycleSignal = null;
   booted = false;
@@ -215,25 +194,9 @@ function lifecycleActive(): boolean {
   return booted && settings?.enabled !== false && lifecycleSignal?.aborted !== true;
 }
 
-function postReadingDockIcon(): string {
-  return chrome.runtime.getURL("post-reading/post-reading-logo.png");
-}
-
-function updateDockState(): void {
-  if (!appFrame || !player || !speech) return;
-  const state = speech.getState();
-  const status = state.status === "speaking"
-    ? "Speaking"
-    : state.status === "paused"
-      ? "Paused"
-      : state.status === "error"
-        ? "Error"
-        : "Ready";
-  appFrame.updateDock({
-    active: player.isVisible(),
-    badgeText: state.status === "speaking" ? "ON" : state.status === "paused" ? "II" : state.status === "error" ? "!" : "",
-    title: state.title ? `Post-reading: ${status} - ${state.title}` : `Post-reading: ${status}`,
-  });
+function removeLegacyOverlayDock(): void {
+  document.getElementById("postReading-overlay-dock-root")?.remove();
+  document.getElementById("postReading-overlay-dock-style")?.remove();
 }
 
 function scheduleScan(): void {

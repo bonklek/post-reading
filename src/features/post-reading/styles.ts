@@ -97,6 +97,14 @@ export function injectStyles(): void {
       height: 16px;
       pointer-events: none;
     }
+    .post-reading-logo-control img {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      object-fit: contain;
+      pointer-events: none;
+      display: block;
+    }
     .post-reading-close {
       margin-left: 2px;
       color: rgb(122, 83, 104);

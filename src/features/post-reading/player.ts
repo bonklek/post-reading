@@ -56,7 +56,7 @@ export class MiniPlayer {
     this.title.className = "post-reading-title";
     this.title.textContent = "Post-reading";
 
-    const settingsButton = controlButton("Settings", "settings", () => {
+    const settingsButton = logoButton("Settings", () => {
       this.settingsPanel.hidden = !this.settingsPanel.hidden;
       if (!this.settingsPanel.hidden) this.renderSettings();
     });
@@ -418,6 +418,24 @@ function controlButton(label: string, iconName: Parameters<typeof icon>[0], onCl
   button.setAttribute("aria-label", label);
   button.title = label;
   button.innerHTML = icon(iconName);
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onClick();
+  });
+  return button;
+}
+
+function logoButton(label: string, onClick: () => void): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "post-reading-control post-reading-logo-control";
+  button.setAttribute("aria-label", label);
+  button.title = label;
+  const image = document.createElement("img");
+  image.src = chrome.runtime.getURL("post-reading/post-reading-logo.png");
+  image.alt = "";
+  button.append(image);
   button.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
