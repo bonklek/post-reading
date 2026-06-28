@@ -34,6 +34,10 @@ let calibratedCharsPerSecond = 13;
 let smoothAnimationFrame: number | null = null;
 let smoothAnimationTimer: number | null = null;
 let smoothVisualIndex = 0;
+let estimatedHighlightFrame: number | null = null;
+let estimatedHighlightKey = "";
+let estimatedHighlightStartedAt = 0;
+let estimatedHighlightPausedAt: number | null = null;
 let lastHighlightDiagnosticSignature = "";
 let lastSmoothAnimationDiagnosticSignature = "";
 let currentOcrRunAbort: AbortController | null = null;
@@ -69,6 +73,17 @@ type HighlightTarget = {
   start: number;
   end: number;
   text: string;
+};
+
+type HighlightSpeechState = {
+  status: string;
+  text: string;
+  chunkIndex: number;
+  chunkCount: number;
+  chunkStart: number | null;
+  charIndex: number | null;
+  charLength: number | null;
+  hasSyncedBoundaries: boolean;
 };
 
 export async function boot(context?: PostReadingContentAppContext): Promise<void> {
@@ -1036,14 +1051,16 @@ function markActiveButton(tweet: HTMLElement): void {
   }
 }
 
-function updateHighlight(state: { status: string; chunkIndex: number; chunkStart: number | null; charIndex: number | null; charLength: number | null; hasSyncedBoundaries: boolean }): void {
+function updateHighlight(state: HighlightSpeechState): void {
   if (state.status === "idle") {
+    clearEstimatedHighlightLoop();
     clearBodyHighlight();
     clearActiveTweets();
     lastChunkIndex = null;
     return;
   }
   if (state.status === "error") {
+    clearEstimatedHighlightLoop();
     clearHighlightVisuals();
     clearActiveTweets();
     lastChunkIndex = null;
@@ -1053,17 +1070,17 @@ function updateHighlight(state: { status: string; chunkIndex: number; chunkStart
     currentTweet.dataset.postReadingActive = "true";
     currentTweet.dataset.postReadingActiveBackground = String(settings.activeTweetHighlight);
   }
-  if (!currentTweet || settings.bodyHighlightMode === "off") return;
-  if (!state.hasSyncedBoundaries) {
-    clearHighlightVisuals();
+  if (!currentTweet || settings.bodyHighlightMode === "off") {
+    clearEstimatedHighlightLoop();
     return;
   }
   if (currentHighlightTargets.length === 0) {
     return;
   }
+  updateEstimatedHighlightLoop(state);
   const chunkChanged = lastChunkIndex !== null && state.chunkIndex !== lastChunkIndex;
   lastChunkIndex = state.chunkIndex;
-  const absoluteIndex = state.charIndex ?? state.chunkStart;
+  const absoluteIndex = state.charIndex ?? estimateUnsyncedHighlightIndex(state);
   if (absoluteIndex === null) return;
 
   const target = findActiveHighlightTarget(absoluteIndex);
@@ -1091,6 +1108,63 @@ function updateHighlight(state: { status: string; chunkIndex: number; chunkStart
   updateBoundaryCalibration(relativeIndex);
   paintSmoothTokens(words, currentWord, relativeIndex, previousIndex, target.text.length, highlightJumped);
   scrollFullQuoteWordIntoView(currentWord);
+}
+
+function updateEstimatedHighlightLoop(state: HighlightSpeechState): void {
+  if (state.hasSyncedBoundaries || state.charIndex !== null) {
+    clearEstimatedHighlightLoop();
+    return;
+  }
+  if (state.status !== "speaking") return;
+  if (estimatedHighlightFrame !== null) return;
+  estimatedHighlightFrame = window.requestAnimationFrame(() => {
+    estimatedHighlightFrame = null;
+    if (!speech || !lifecycleActive()) return;
+    const nextState = speech.getState();
+    if (nextState.status === "speaking" && !nextState.hasSyncedBoundaries && nextState.charIndex === null) {
+      updateHighlight(nextState);
+    }
+  });
+}
+
+function clearEstimatedHighlightLoop(): void {
+  if (estimatedHighlightFrame !== null) {
+    window.cancelAnimationFrame(estimatedHighlightFrame);
+    estimatedHighlightFrame = null;
+  }
+  estimatedHighlightKey = "";
+  estimatedHighlightStartedAt = 0;
+  estimatedHighlightPausedAt = null;
+}
+
+function estimateUnsyncedHighlightIndex(state: HighlightSpeechState): number | null {
+  if (state.chunkStart === null) return null;
+  if (state.hasSyncedBoundaries) return state.chunkStart;
+  const key = `${state.chunkIndex}:${state.chunkStart}:${state.chunkCount}`;
+  const now = performance.now();
+  if (estimatedHighlightKey !== key) {
+    estimatedHighlightKey = key;
+    estimatedHighlightStartedAt = now;
+    estimatedHighlightPausedAt = null;
+  }
+  if (state.status === "paused") {
+    estimatedHighlightPausedAt ??= now;
+  } else if (estimatedHighlightPausedAt !== null) {
+    estimatedHighlightStartedAt += now - estimatedHighlightPausedAt;
+    estimatedHighlightPausedAt = null;
+  }
+  const elapsedSeconds = Math.max(0, ((estimatedHighlightPausedAt ?? now) - estimatedHighlightStartedAt) / 1000);
+  const estimatedOffset = Math.round(elapsedSeconds * Math.max(4, calibratedCharsPerSecond));
+  const chunkEnd = findEstimatedChunkEnd(state.text, state.chunkStart);
+  return Math.min(chunkEnd, state.chunkStart + estimatedOffset);
+}
+
+function findEstimatedChunkEnd(text: string, chunkStart: number): number {
+  const remaining = text.slice(chunkStart);
+  if (remaining.length <= 220) return text.length;
+  const slice = remaining.slice(0, 220);
+  const boundary = Math.max(slice.lastIndexOf(". "), slice.lastIndexOf("! "), slice.lastIndexOf("? "), slice.lastIndexOf(", "));
+  return chunkStart + (boundary > 80 ? boundary + 1 : Math.min(220, remaining.length));
 }
 
 function effectiveHighlightMode(target: HighlightTarget): BodyHighlightMode {
@@ -1162,6 +1236,7 @@ function getVisibleQuoteTweetBody(tweet: HTMLElement): HTMLElement | null {
 }
 
 function clearBodyHighlight(): void {
+  clearEstimatedHighlightLoop();
   clearHighlightVisuals();
   for (const body of highlightedBodies) {
     if (body.dataset.postReadingOriginalHtml) {
@@ -1176,6 +1251,7 @@ function clearBodyHighlight(): void {
 }
 
 function clearHighlightVisuals(): void {
+  clearEstimatedHighlightLoop();
   clearSmoothAnimation();
   for (const word of Array.from(document.querySelectorAll<HTMLElement>('[data-post-reading-word="true"]'))) {
     delete word.dataset.postReadingCurrentWord;

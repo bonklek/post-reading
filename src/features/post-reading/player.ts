@@ -218,10 +218,10 @@ export class MiniPlayer {
     const probeButton = document.createElement("button");
     probeButton.type = "button";
     probeButton.className = "post-reading-secondary";
-    probeButton.textContent = this.probingVoices ? "Testing voices..." : "Test voice highlighting";
-    probeButton.disabled = this.probingVoices || voices.length === 0;
+    probeButton.textContent = this.probingVoices ? "Checking voice..." : "Check current voice timing";
+    probeButton.disabled = this.probingVoices || (!selectedVoice && sortedVoices.length === 0);
     probeButton.addEventListener("click", () => {
-      void this.probeVoices(sortedVoices);
+      void this.probeVoices(selectedVoice ? [selectedVoice] : sortedVoices.slice(0, 1));
     });
 
     const speedLabel = document.createElement("label");
