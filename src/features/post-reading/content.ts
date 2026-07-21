@@ -1,5 +1,6 @@
 import { extractReadablePost, formatReadablePost } from "./extractText";
-import { fetchEmbeddedQuote, fetchFullQuote } from "./fullQuote";
+import { configurePostReadingAssetResolver } from "./assetUrl";
+import { configureFullQuoteRuntimeMessage, fetchEmbeddedQuote, fetchFullQuote } from "./fullQuote";
 import { icon } from "./icons";
 import { recognizeImageText, type OcrImage } from "./ocr";
 import { MiniPlayer } from "./player";
@@ -8,9 +9,8 @@ import type { BodyHighlightMode, PostReadingSettings, ReadablePost } from "./sha
 import { playEndDing } from "./sounds";
 import { SpeechController } from "./speech";
 import { injectStyles } from "./styles";
-import { loadSettings, loadVoiceBoundarySupport, observeSettings, saveSettings, saveVoiceBoundarySupport } from "./storage";
+import { configurePostReadingStorage, loadSettings, loadVoiceBoundarySupport, observeSettings, saveSettings, saveVoiceBoundarySupport } from "./storage";
 import type { TwitterSurface } from "../../shared/twitterScanner";
-import { recordFeatureTiming } from "../../shared/performanceDiagnostics";
 import type { AppRuntimeScheduler, PostReadingContentAppContext } from "../../shared/appPlatform";
 
 const processed = new WeakMap<HTMLElement, string>();
@@ -90,9 +90,12 @@ export async function boot(context?: PostReadingContentAppContext): Promise<void
   if (booted) return;
   booted = true;
   lifecycleSignal = context?.signal || null;
-  runtimeScheduleScan = context?.scheduleScan || runtimeScheduleScan;
+  runtimeScheduleScan = context?.requestSurfaceRescan || context?.scheduleScan || runtimeScheduleScan;
   runtimeScheduler = context?.scheduler || runtimeScheduler;
   recordRuntimeDiagnostic = context?.recordDiagnostic || recordRuntimeDiagnostic;
+  configureFullQuoteRuntimeMessage(context?.sendMessage || null);
+  configurePostReadingStorage(context?.storage || null);
+  configurePostReadingAssetResolver(context?.resolveAssetUrl || null);
   const addDisposable = context?.addDisposable || (() => undefined);
   injectStyles();
   settings = await loadSettings();
@@ -200,6 +203,9 @@ export function dispose(): void {
   cancelPendingScan = null;
   pendingTweets.clear();
   recordRuntimeDiagnostic = () => undefined;
+  configureFullQuoteRuntimeMessage(null);
+  configurePostReadingStorage(null);
+  configurePostReadingAssetResolver(null);
   lifecycleSignal = null;
   booted = false;
 }
@@ -228,7 +234,7 @@ function processTweets(): void {
     if (!lifecycleActive() || !tweet.isConnected) continue;
     const startedAt = performance.now();
     processTweet(tweet, surface.actionRow, policy);
-    recordFeatureTiming("post-reading", "processTweet", startedAt);
+    recordRuntimeDiagnostic("processTweetMs", Math.round((performance.now() - startedAt) * 10) / 10);
   }
   if (pendingTweets.size > 0) scheduleScan();
 }

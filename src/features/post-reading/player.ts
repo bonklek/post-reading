@@ -1,4 +1,5 @@
 import { icon } from "./icons";
+import { postReadingAssetUrl } from "./assetUrl";
 import type { BoundarySupport } from "./speech";
 import type { OcrProgress } from "./ocr";
 import type { PostReadingSettings, SpeechState } from "./shared/types";
@@ -440,7 +441,7 @@ function logoButton(label: string, onClick: () => void): HTMLButtonElement {
   button.setAttribute("aria-label", label);
   button.title = label;
   const image = document.createElement("img");
-  image.src = chrome.runtime.getURL("post-reading/post-reading-logo.png");
+  image.src = postReadingAssetUrl("post-reading/post-reading-logo.png");
   image.alt = "";
   button.append(image);
   button.addEventListener("click", (event) => {

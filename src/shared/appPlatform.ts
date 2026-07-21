@@ -3,7 +3,7 @@ import type { Disposable } from "./disposables";
 
 export type PostReadingAppId = string;
 
-export type PostReadingAppSurface = TwitterSurfaceKind | "route" | "overlayApp";
+export type PostReadingAppSurface = TwitterSurfaceKind | "xArticle" | "route" | "overlayApp";
 export type AppCostLevel = "cheap" | "moderate" | "heavy";
 export type AppNetworkCost = "none" | "batched" | "eager";
 export type AppWorkerCost = "none" | "optional" | "heavy";
@@ -12,6 +12,15 @@ export type AppLoadTrigger = "startup" | "surface" | "idle" | "userAction";
 export type AppHubCategory = "appearance" | "reading" | "social" | "game" | "media" | "developer";
 export type AppPreset = "lite" | "balanced" | "full";
 export type AppPrivacyLabel = "local-only" | "browser-session" | "remote-api" | "local-files" | "diagnostics";
+
+export type AppStorageChange = { oldValue?: unknown; newValue?: unknown };
+export type AppStorageArea = {
+  get<T extends Record<string, unknown>>(defaults: T): Promise<T>;
+  set(values: Record<string, unknown>): Promise<void>;
+  remove(keys: string | readonly string[]): Promise<void>;
+  onChanged(listener: (changes: Record<string, AppStorageChange>) => void): () => void;
+};
+export type AppStorageFacade = { local: AppStorageArea; sync: AppStorageArea };
 
 export type AppCostProfile = {
   startup: AppCostLevel;
@@ -74,9 +83,13 @@ export type AppRuntimeScheduler = {
 export type PostReadingContentAppContext = {
   manifest: PostReadingAppManifest;
   signal: AbortSignal;
+  requestSurfaceRescan: () => void;
+  /** @deprecated Standalone compatibility alias. milXdy packages use requestSurfaceRescan. */
   scheduleScan: () => void;
   loadAppById: (id: PostReadingAppId, reason?: string) => Promise<PostReadingContentAppModule | null>;
   scheduler: AppRuntimeScheduler;
+  storage: AppStorageFacade;
+  resolveAssetUrl: (path: string) => string;
   sendMessage: <T = unknown>(message: unknown, label?: string) => Promise<T | null>;
   recordDiagnostic: (key: string, value: unknown) => void;
   addDisposable: (disposable: Disposable) => void;

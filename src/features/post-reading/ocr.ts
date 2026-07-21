@@ -103,7 +103,7 @@ export async function recognizeImageText(
 function ensureHostFrame(): HTMLIFrameElement {
   if (hostFrame?.isConnected) return hostFrame;
   const frame = document.createElement("iframe");
-  frame.src = chrome.runtime.getURL("ocr.html");
+  frame.src = postReadingAssetUrl("ocr.html");
   frame.title = "Post-reading OCR host";
   frame.hidden = true;
   frame.style.display = "none";
@@ -146,7 +146,7 @@ function postToHost(frame: HTMLIFrameElement, request: OcrRequest | OcrCancelReq
 }
 
 function extensionOrigin(): string {
-  return new URL(chrome.runtime.getURL("")).origin;
+  return new URL(postReadingAssetUrl("ocr.html")).origin;
 }
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
@@ -192,3 +192,4 @@ function cleanOcrText(value: string): string {
 function throwIfAborted(signal: AbortSignal): void {
   if (signal.aborted) throw new DOMException("OCR skipped", "AbortError");
 }
+import { postReadingAssetUrl } from "./assetUrl";

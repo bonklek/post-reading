@@ -1,8 +1,13 @@
 import { cleanText } from "./extractText";
-import { hasExtensionRuntime, safeRuntimeMessage } from "../../shared/extensionRuntime";
+import type { PostReadingContentAppContext } from "../../shared/appPlatform";
 
 const cache = new Map<string, string | null>();
 const embeddedQuoteCache = new Map<string, EmbeddedQuote | null>();
+let runtimeSendMessage: PostReadingContentAppContext["sendMessage"] | null = null;
+
+export function configureFullQuoteRuntimeMessage(sendMessage: PostReadingContentAppContext["sendMessage"] | null): void {
+  runtimeSendMessage = sendMessage;
+}
 
 export type FullQuoteFetchResult = {
   text: string | null;
@@ -73,7 +78,7 @@ async function fetchHtmlText(url: string, signal: AbortSignal): Promise<string |
 }
 
 async function fetchText(url: string, signal: AbortSignal): Promise<string> {
-  if (hasExtensionRuntime()) {
+  if (runtimeSendMessage) {
     const response = await sendRuntimeMessage<FetchTextResponse>({ type: "post-reading:fetchText", url }, signal);
     if (!response.ok) throw new Error(`Text fetch failed: ${response.error || response.status}`);
     return response.text;
@@ -157,7 +162,7 @@ async function fetchSyndicationTweet(url: string, signal: AbortSignal): Promise<
 }
 
 async function fetchSyndicationJson(url: string, signal: AbortSignal): Promise<SyndicationTweet> {
-  if (hasExtensionRuntime()) {
+  if (runtimeSendMessage) {
     const response = await sendRuntimeMessage<FetchJsonResponse>({ type: "post-reading:fetchJson", url }, signal);
     if (!response.ok) throw new Error(`Syndication fetch failed: ${response.error || response.status}`);
     return response.data as SyndicationTweet;
@@ -184,9 +189,13 @@ function sendRuntimeMessage<TResponse>(message: RuntimeFetchMessage, signal: Abo
       reject(new DOMException("Aborted", "AbortError"));
       return;
     }
+    if (!runtimeSendMessage) {
+      reject(new Error("Post-reading runtime messaging unavailable"));
+      return;
+    }
     const abort = (): void => reject(new DOMException("Aborted", "AbortError"));
     signal.addEventListener("abort", abort, { once: true });
-    void safeRuntimeMessage<TResponse>(message).then((response) => {
+    void runtimeSendMessage<TResponse>(message, message.type).then((response) => {
       signal.removeEventListener("abort", abort);
       if (!response) {
         reject(new Error("Empty syndication response"));

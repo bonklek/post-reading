@@ -2,6 +2,7 @@ import { boot, onSurface } from "../../features/post-reading/content";
 import type { PostReadingContentAppContext } from "../../shared/appPlatform";
 import type { Disposable } from "../../shared/disposables";
 import { safeRuntimeMessage } from "../../shared/extensionRuntime";
+import { createChromeAppStorage } from "../../shared/chromeAppStorage";
 import { scheduleTwitterScan, subscribeTwitterSurfaces } from "../../shared/twitterScanner";
 
 const controller = new AbortController();
@@ -72,6 +73,7 @@ async function bootStandalonePostReading(): Promise<void> {
       isEnabled: async () => true,
     },
     signal: controller.signal,
+    requestSurfaceRescan: scheduleTwitterScan,
     scheduleScan: scheduleTwitterScan,
     loadAppById: async () => null,
     scheduler: {
@@ -88,6 +90,8 @@ async function bootStandalonePostReading(): Promise<void> {
         return () => window.clearTimeout(id);
       },
     },
+    storage: createChromeAppStorage(),
+    resolveAssetUrl: (path) => chrome.runtime.getURL(path),
     sendMessage: (message) => safeRuntimeMessage(message),
     recordDiagnostic: () => undefined,
     addDisposable(disposable) {

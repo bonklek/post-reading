@@ -1,4 +1,7 @@
-import { loadSettings, saveSettings } from "./storage";
+import { createChromeAppStorage } from "../../shared/chromeAppStorage";
+import { configurePostReadingStorage, loadSettings, saveSettings } from "./storage";
+
+configurePostReadingStorage(createChromeAppStorage());
 
 void boot();
 
