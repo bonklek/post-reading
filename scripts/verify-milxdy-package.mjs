@@ -16,6 +16,9 @@ if (/from\s+["'][^"']*(?:milXdy|src\/platform|src\/apps)[^"']*["']/.test(sourceE
 if (/\b(?:chrome|browser)\.runtime\.(?:sendMessage|connect)\b/.test(bundle)) {
   failures.push("package bundle bypasses context.sendMessage with direct runtime messaging");
 }
+if (/\b(?:chrome|browser)\.storage\b/.test(bundle)) {
+  failures.push("package bundle bypasses context.storage with direct browser storage access");
+}
 if (compatibility.packageId !== manifest.id || compatibility.packageVersion !== manifest.version) {
   failures.push("manifest and compatibility contract identify different package versions");
 }

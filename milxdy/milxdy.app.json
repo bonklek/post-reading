@@ -21,6 +21,8 @@
       "speed",
       "volume",
       "voiceURI",
+      "voiceLanguageFilter",
+      "voiceGenderFilter",
       "autoVoice",
       "ttsEngine",
       "customTtsEndpoint",
@@ -37,6 +39,7 @@
       "includeImageOcr",
       "includeLinkPreviews",
       "expandShowMore",
+      "wikiAutoScroll",
       "activeTweetHighlight",
       "bodyHighlightMode",
       "playerPosition",
@@ -221,7 +224,7 @@
     "reviewedAt": "2026-07-21",
     "notes": [
       "This package intentionally replaces the bundled Post-reading app only in a reviewed custom build.",
-      "Direct storage and extension-asset access remain reviewed exceptions pending public SDK facades."
+      "Extension-asset access remains a reviewed exception pending a public SDK asset facade. Storage uses the declared-key SDK capability."
     ]
   }
 }

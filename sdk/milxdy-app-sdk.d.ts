@@ -24,6 +24,23 @@ export interface MilxdyRouteChange {
 
 export type Disposable = (() => void) | { dispose(): void };
 
+export interface AppStorageChange {
+  oldValue?: unknown;
+  newValue?: unknown;
+}
+
+export interface AppStorageArea {
+  get<T extends Record<string, unknown>>(defaults: T): Promise<T>;
+  set(values: Record<string, unknown>): Promise<void>;
+  remove(keys: string | readonly string[]): Promise<void>;
+  onChanged(listener: (changes: Record<string, AppStorageChange>) => void): () => void;
+}
+
+export interface AppStorageFacade {
+  readonly local: AppStorageArea;
+  readonly sync: AppStorageArea;
+}
+
 export interface MilxdyContentAppContext {
   readonly manifest: {
     id: string;
@@ -36,6 +53,7 @@ export interface MilxdyContentAppContext {
     idle(callback: () => void, options?: { timeout?: number }): () => void;
     timeout(callback: () => void, delayMs: number): () => void;
   };
+  readonly storage: AppStorageFacade;
   requestSurfaceRescan(): void;
   sendMessage<T = unknown>(message: unknown, label?: string): Promise<T | null>;
   recordDiagnostic(key: string, value: unknown): void;

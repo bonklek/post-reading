@@ -13,6 +13,15 @@ export type AppHubCategory = "appearance" | "reading" | "social" | "game" | "med
 export type AppPreset = "lite" | "balanced" | "full";
 export type AppPrivacyLabel = "local-only" | "browser-session" | "remote-api" | "local-files" | "diagnostics";
 
+export type AppStorageChange = { oldValue?: unknown; newValue?: unknown };
+export type AppStorageArea = {
+  get<T extends Record<string, unknown>>(defaults: T): Promise<T>;
+  set(values: Record<string, unknown>): Promise<void>;
+  remove(keys: string | readonly string[]): Promise<void>;
+  onChanged(listener: (changes: Record<string, AppStorageChange>) => void): () => void;
+};
+export type AppStorageFacade = { local: AppStorageArea; sync: AppStorageArea };
+
 export type AppCostProfile = {
   startup: AppCostLevel;
   perSurface: AppCostLevel;
@@ -79,6 +88,7 @@ export type PostReadingContentAppContext = {
   scheduleScan: () => void;
   loadAppById: (id: PostReadingAppId, reason?: string) => Promise<PostReadingContentAppModule | null>;
   scheduler: AppRuntimeScheduler;
+  storage: AppStorageFacade;
   sendMessage: <T = unknown>(message: unknown, label?: string) => Promise<T | null>;
   recordDiagnostic: (key: string, value: unknown) => void;
   addDisposable: (disposable: Disposable) => void;

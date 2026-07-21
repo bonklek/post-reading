@@ -8,9 +8,8 @@ import type { BodyHighlightMode, PostReadingSettings, ReadablePost } from "./sha
 import { playEndDing } from "./sounds";
 import { SpeechController } from "./speech";
 import { injectStyles } from "./styles";
-import { loadSettings, loadVoiceBoundarySupport, observeSettings, saveSettings, saveVoiceBoundarySupport } from "./storage";
+import { configurePostReadingStorage, loadSettings, loadVoiceBoundarySupport, observeSettings, saveSettings, saveVoiceBoundarySupport } from "./storage";
 import type { TwitterSurface } from "../../shared/twitterScanner";
-import { recordFeatureTiming } from "../../shared/performanceDiagnostics";
 import type { AppRuntimeScheduler, PostReadingContentAppContext } from "../../shared/appPlatform";
 
 const processed = new WeakMap<HTMLElement, string>();
@@ -94,6 +93,7 @@ export async function boot(context?: PostReadingContentAppContext): Promise<void
   runtimeScheduler = context?.scheduler || runtimeScheduler;
   recordRuntimeDiagnostic = context?.recordDiagnostic || recordRuntimeDiagnostic;
   configureFullQuoteRuntimeMessage(context?.sendMessage || null);
+  configurePostReadingStorage(context?.storage || null);
   const addDisposable = context?.addDisposable || (() => undefined);
   injectStyles();
   settings = await loadSettings();
@@ -202,6 +202,7 @@ export function dispose(): void {
   pendingTweets.clear();
   recordRuntimeDiagnostic = () => undefined;
   configureFullQuoteRuntimeMessage(null);
+  configurePostReadingStorage(null);
   lifecycleSignal = null;
   booted = false;
 }
@@ -230,7 +231,7 @@ function processTweets(): void {
     if (!lifecycleActive() || !tweet.isConnected) continue;
     const startedAt = performance.now();
     processTweet(tweet, surface.actionRow, policy);
-    recordFeatureTiming("post-reading", "processTweet", startedAt);
+    recordRuntimeDiagnostic("processTweetMs", Math.round((performance.now() - startedAt) * 10) / 10);
   }
   if (pendingTweets.size > 0) scheduleScan();
 }
