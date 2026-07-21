@@ -224,7 +224,7 @@
     "reviewedAt": "2026-07-21",
     "notes": [
       "This package intentionally replaces the bundled Post-reading app only in a reviewed custom build.",
-      "Extension-asset access remains a reviewed exception pending a public SDK asset facade. Storage uses the declared-key SDK capability."
+      "Storage and asset URLs use declared public SDK capabilities. Host-provided OCR assets and background handlers remain transitional reviewed dependencies."
     ]
   }
 }

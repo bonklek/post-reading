@@ -19,6 +19,9 @@ if (/\b(?:chrome|browser)\.runtime\.(?:sendMessage|connect)\b/.test(bundle)) {
 if (/\b(?:chrome|browser)\.storage\b/.test(bundle)) {
   failures.push("package bundle bypasses context.storage with direct browser storage access");
 }
+if (/\b(?:chrome|browser)\.runtime\.getURL\b/.test(bundle)) {
+  failures.push("package bundle bypasses context.resolveAssetUrl with direct extension asset access");
+}
 if (compatibility.packageId !== manifest.id || compatibility.packageVersion !== manifest.version) {
   failures.push("manifest and compatibility contract identify different package versions");
 }

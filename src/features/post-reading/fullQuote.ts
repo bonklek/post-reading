@@ -1,5 +1,4 @@
 import { cleanText } from "./extractText";
-import { hasExtensionRuntime } from "../../shared/extensionRuntime";
 import type { PostReadingContentAppContext } from "../../shared/appPlatform";
 
 const cache = new Map<string, string | null>();
@@ -79,7 +78,7 @@ async function fetchHtmlText(url: string, signal: AbortSignal): Promise<string |
 }
 
 async function fetchText(url: string, signal: AbortSignal): Promise<string> {
-  if (hasExtensionRuntime()) {
+  if (runtimeSendMessage) {
     const response = await sendRuntimeMessage<FetchTextResponse>({ type: "post-reading:fetchText", url }, signal);
     if (!response.ok) throw new Error(`Text fetch failed: ${response.error || response.status}`);
     return response.text;
@@ -163,7 +162,7 @@ async function fetchSyndicationTweet(url: string, signal: AbortSignal): Promise<
 }
 
 async function fetchSyndicationJson(url: string, signal: AbortSignal): Promise<SyndicationTweet> {
-  if (hasExtensionRuntime()) {
+  if (runtimeSendMessage) {
     const response = await sendRuntimeMessage<FetchJsonResponse>({ type: "post-reading:fetchJson", url }, signal);
     if (!response.ok) throw new Error(`Syndication fetch failed: ${response.error || response.status}`);
     return response.data as SyndicationTweet;

@@ -1,4 +1,5 @@
 import { extractReadablePost, formatReadablePost } from "./extractText";
+import { configurePostReadingAssetResolver } from "./assetUrl";
 import { configureFullQuoteRuntimeMessage, fetchEmbeddedQuote, fetchFullQuote } from "./fullQuote";
 import { icon } from "./icons";
 import { recognizeImageText, type OcrImage } from "./ocr";
@@ -94,6 +95,7 @@ export async function boot(context?: PostReadingContentAppContext): Promise<void
   recordRuntimeDiagnostic = context?.recordDiagnostic || recordRuntimeDiagnostic;
   configureFullQuoteRuntimeMessage(context?.sendMessage || null);
   configurePostReadingStorage(context?.storage || null);
+  configurePostReadingAssetResolver(context?.resolveAssetUrl || null);
   const addDisposable = context?.addDisposable || (() => undefined);
   injectStyles();
   settings = await loadSettings();
@@ -203,6 +205,7 @@ export function dispose(): void {
   recordRuntimeDiagnostic = () => undefined;
   configureFullQuoteRuntimeMessage(null);
   configurePostReadingStorage(null);
+  configurePostReadingAssetResolver(null);
   lifecycleSignal = null;
   booted = false;
 }

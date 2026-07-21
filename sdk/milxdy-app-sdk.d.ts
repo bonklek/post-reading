@@ -54,6 +54,7 @@ export interface MilxdyContentAppContext {
     timeout(callback: () => void, delayMs: number): () => void;
   };
   readonly storage: AppStorageFacade;
+  resolveAssetUrl(path: string): string;
   requestSurfaceRescan(): void;
   sendMessage<T = unknown>(message: unknown, label?: string): Promise<T | null>;
   recordDiagnostic(key: string, value: unknown): void;

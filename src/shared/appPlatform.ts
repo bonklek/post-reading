@@ -89,6 +89,7 @@ export type PostReadingContentAppContext = {
   loadAppById: (id: PostReadingAppId, reason?: string) => Promise<PostReadingContentAppModule | null>;
   scheduler: AppRuntimeScheduler;
   storage: AppStorageFacade;
+  resolveAssetUrl: (path: string) => string;
   sendMessage: <T = unknown>(message: unknown, label?: string) => Promise<T | null>;
   recordDiagnostic: (key: string, value: unknown) => void;
   addDisposable: (disposable: Disposable) => void;
