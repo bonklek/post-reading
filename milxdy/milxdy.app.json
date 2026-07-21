@@ -1,0 +1,227 @@
+{
+  "manifestVersion": 1,
+  "id": "post-reading",
+  "name": "Post-reading",
+  "version": "0.2.0-sdk.1",
+  "description": "External Post-reading reference package for the milXdy reviewed custom-build App SDK.",
+  "packageKind": "app",
+  "sdk": {
+    "minVersion": "0.2.3",
+    "targetVersion": "0.2.3",
+    "notes": [
+      "Reference integration for bonklek/milXdy issue #18.",
+      "Uses the public lifecycle, surface delivery, scheduler, cancellation, diagnostics, rescan, and routed-message context."
+    ]
+  },
+  "contentEntry": "dist/content.js",
+  "defaultEnabled": true,
+  "storageKeys": {
+    "sync": [
+      "enabled",
+      "speed",
+      "volume",
+      "voiceURI",
+      "autoVoice",
+      "ttsEngine",
+      "customTtsEndpoint",
+      "customTtsTimingMode",
+      "autoplayNext",
+      "autoplayMode",
+      "skipPromotedPosts",
+      "endOfTweetDing",
+      "includeQuotes",
+      "fetchFullQuotes",
+      "fullQuoteDisplay",
+      "includeHyperlinks",
+      "includeImageAltText",
+      "includeImageOcr",
+      "includeLinkPreviews",
+      "expandShowMore",
+      "activeTweetHighlight",
+      "bodyHighlightMode",
+      "playerPosition",
+      "buttonPlacement",
+      "useHandles",
+      "keyNextTweet",
+      "keyPreviousTweet",
+      "keyNextChunk",
+      "keyPreviousChunk",
+      "keySkipOcr",
+      "keyPlayPause"
+    ],
+    "local": [
+      "voiceBoundarySupportV2"
+    ]
+  },
+  "settings": [
+    {
+      "id": "post-reading.enabled",
+      "label": "Post-reading",
+      "description": "Add read-aloud controls to supported X posts.",
+      "scope": "app",
+      "location": "appsAndFeatures",
+      "role": "enablement",
+      "storage": {
+        "area": "sync",
+        "key": "enabled"
+      },
+      "defaultValue": true,
+      "control": {
+        "type": "toggle"
+      },
+      "reset": {
+        "behavior": "restoreDefault"
+      },
+      "presets": [
+        "firstRun",
+        "profilePack"
+      ]
+    }
+  ],
+  "surfaces": [
+    "tweet",
+    "xArticle",
+    "overlayApp"
+  ],
+  "deliverySurfaces": [
+    "tweet",
+    "xArticle"
+  ],
+  "lifecycle": {
+    "mode": "runtime",
+    "notes": [
+      "The milXdy runtime owns loading, cancellation, surface delivery, disable, and disposal."
+    ]
+  },
+  "siteScopes": [
+    {
+      "site": "x",
+      "hosts": [
+        "https://x.com/*",
+        "https://twitter.com/*",
+        "https://pbs.twimg.com/*",
+        "https://publish.twitter.com/*",
+        "https://cdn.syndication.twimg.com/*"
+      ],
+      "integration": "contentScript",
+      "surfaces": [
+        "tweet",
+        "xArticle",
+        "overlayApp"
+      ],
+      "presentation": "userAction"
+    }
+  ],
+  "cost": {
+    "startup": "moderate",
+    "perSurface": "moderate",
+    "network": "batched",
+    "worker": "optional",
+    "domWrite": "moderate"
+  },
+  "loadTriggers": [
+    "surface",
+    "userAction"
+  ],
+  "chrome": {
+    "nativeStyle": "reader",
+    "supportedStyles": [
+      "native",
+      "reader"
+    ],
+    "notes": [
+      "The reference package retains its own floating player until shared overlay primitives become a public SDK capability."
+    ]
+  },
+  "hub": {
+    "category": "reading",
+    "shortDescription": "External SDK reference app for reading X posts aloud.",
+    "rail": {
+      "supported": false,
+      "defaultPinned": false
+    },
+    "presets": [
+      "balanced",
+      "full"
+    ],
+    "permissionNotes": [
+      "Uses the host extension's storage permission and reviewed Post-reading background fetch routes.",
+      "OCR uses the host extension's packaged OCR frame and worker assets in this first reference package."
+    ],
+    "dataNotes": [
+      "Reads selected public post text, quote text, link metadata, and optional image text.",
+      "Custom TTS sends selected text to the endpoint explicitly configured by the user."
+    ],
+    "remoteServices": [
+      "x.com",
+      "twitter.com",
+      "publish.twitter.com",
+      "cdn.syndication.twimg.com",
+      "user-configured custom TTS endpoint"
+    ],
+    "localStorageNotes": [
+      "Stores reader settings in sync storage and voice-boundary results in local storage."
+    ],
+    "privacyLabels": [
+      "remote-api",
+      "diagnostics"
+    ]
+  },
+  "permissions": {
+    "hosts": [
+      "https://x.com/*",
+      "https://twitter.com/*",
+      "https://pbs.twimg.com/*",
+      "https://publish.twitter.com/*",
+      "https://cdn.syndication.twimg.com/*"
+    ],
+    "optional": [
+      "storage",
+      "unlimitedStorage"
+    ]
+  },
+  "background": {
+    "messageTypes": [
+      "post-reading:*"
+    ]
+  },
+  "privacy": {
+    "permissionNotes": [
+      "Uses the host extension's storage permission and reviewed Post-reading background fetch routes.",
+      "OCR uses the host extension's packaged OCR frame and worker assets in this first reference package."
+    ],
+    "dataNotes": [
+      "Reads selected public post text, quote text, link metadata, and optional image text.",
+      "Custom TTS sends selected text to the endpoint explicitly configured by the user."
+    ],
+    "localStorageNotes": [
+      "Stores reader settings in sync storage and voice-boundary results in local storage."
+    ],
+    "remoteServices": [
+      "x.com",
+      "twitter.com",
+      "publish.twitter.com",
+      "cdn.syndication.twimg.com",
+      "user-configured custom TTS endpoint"
+    ],
+    "privacyLabels": [
+      "remote-api",
+      "diagnostics"
+    ],
+    "consentRequired": true
+  },
+  "package": {
+    "assets": [],
+    "webAccessibleAssets": []
+  },
+  "review": {
+    "status": "reviewed",
+    "sourceUrl": "https://github.com/bonklek/post-reading",
+    "reviewedBy": "milXdy App SDK reference integration",
+    "reviewedAt": "2026-07-21",
+    "notes": [
+      "This package intentionally replaces the bundled Post-reading app only in a reviewed custom build.",
+      "Direct storage and extension-asset access remain reviewed exceptions pending public SDK facades."
+    ]
+  }
+}

@@ -13,6 +13,8 @@
     "build:vivaldi": "node scripts/build-post-reading.mjs --target=vivaldi",
     "build:opera": "node scripts/build-post-reading.mjs --target=opera",
     "build:firefox": "node scripts/build-post-reading.mjs --target=firefox",
+    "build:milxdy-package": "node scripts/build-milxdy-package.mjs",
+    "verify:milxdy-package": "node scripts/verify-milxdy-package.mjs",
     "dev": "node scripts/build-post-reading.mjs --target=chromium --watch",
     "dev:edge": "node scripts/build-post-reading.mjs --target=edge --watch",
     "dev:brave": "node scripts/build-post-reading.mjs --target=brave --watch",

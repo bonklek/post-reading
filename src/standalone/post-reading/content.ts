@@ -72,6 +72,7 @@ async function bootStandalonePostReading(): Promise<void> {
       isEnabled: async () => true,
     },
     signal: controller.signal,
+    requestSurfaceRescan: scheduleTwitterScan,
     scheduleScan: scheduleTwitterScan,
     loadAppById: async () => null,
     scheduler: {

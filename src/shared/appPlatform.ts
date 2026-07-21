@@ -3,7 +3,7 @@ import type { Disposable } from "./disposables";
 
 export type PostReadingAppId = string;
 
-export type PostReadingAppSurface = TwitterSurfaceKind | "route" | "overlayApp";
+export type PostReadingAppSurface = TwitterSurfaceKind | "xArticle" | "route" | "overlayApp";
 export type AppCostLevel = "cheap" | "moderate" | "heavy";
 export type AppNetworkCost = "none" | "batched" | "eager";
 export type AppWorkerCost = "none" | "optional" | "heavy";
@@ -74,6 +74,8 @@ export type AppRuntimeScheduler = {
 export type PostReadingContentAppContext = {
   manifest: PostReadingAppManifest;
   signal: AbortSignal;
+  requestSurfaceRescan: () => void;
+  /** @deprecated Standalone compatibility alias. milXdy packages use requestSurfaceRescan. */
   scheduleScan: () => void;
   loadAppById: (id: PostReadingAppId, reason?: string) => Promise<PostReadingContentAppModule | null>;
   scheduler: AppRuntimeScheduler;

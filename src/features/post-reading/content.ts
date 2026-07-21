@@ -1,5 +1,5 @@
 import { extractReadablePost, formatReadablePost } from "./extractText";
-import { fetchEmbeddedQuote, fetchFullQuote } from "./fullQuote";
+import { configureFullQuoteRuntimeMessage, fetchEmbeddedQuote, fetchFullQuote } from "./fullQuote";
 import { icon } from "./icons";
 import { recognizeImageText, type OcrImage } from "./ocr";
 import { MiniPlayer } from "./player";
@@ -90,9 +90,10 @@ export async function boot(context?: PostReadingContentAppContext): Promise<void
   if (booted) return;
   booted = true;
   lifecycleSignal = context?.signal || null;
-  runtimeScheduleScan = context?.scheduleScan || runtimeScheduleScan;
+  runtimeScheduleScan = context?.requestSurfaceRescan || context?.scheduleScan || runtimeScheduleScan;
   runtimeScheduler = context?.scheduler || runtimeScheduler;
   recordRuntimeDiagnostic = context?.recordDiagnostic || recordRuntimeDiagnostic;
+  configureFullQuoteRuntimeMessage(context?.sendMessage || null);
   const addDisposable = context?.addDisposable || (() => undefined);
   injectStyles();
   settings = await loadSettings();
@@ -200,6 +201,7 @@ export function dispose(): void {
   cancelPendingScan = null;
   pendingTweets.clear();
   recordRuntimeDiagnostic = () => undefined;
+  configureFullQuoteRuntimeMessage(null);
   lifecycleSignal = null;
   booted = false;
 }
