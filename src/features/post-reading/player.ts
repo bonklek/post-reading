@@ -249,10 +249,14 @@ export class MiniPlayer {
     volume.max = "1";
     volume.step = "0.01";
     volume.value = String(this.settings.volume);
+    // Only update the label while dragging: committing re-renders this panel (dropping the drag),
+    // restarts speech and writes to storage.sync, so commit once on release.
     volume.addEventListener("input", () => {
       const next = Math.min(1, Math.max(0, Number(volume.value) || 0));
       volumeLabel.firstChild!.textContent = `Volume: ${Math.round(next * 100)}%`;
-      this.update({ volume: next });
+    });
+    volume.addEventListener("change", () => {
+      this.update({ volume: Math.min(1, Math.max(0, Number(volume.value) || 0)) });
     });
     volumeLabel.append(volume);
 

@@ -46,6 +46,8 @@ type CustomSpeechResponse = {
   boundaries?: unknown;
 };
 
+const CUSTOM_TTS_REQUEST_TIMEOUT_MS = 30000;
+
 type CustomBoundary = {
   charIndex: number;
   charLength: number | null;
@@ -124,20 +126,29 @@ export class CustomHttpTtsEngine implements TtsEngine {
     if (!endpoint) throw new Error("Custom TTS endpoint is not configured.");
 
     const abort = new AbortController();
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text: request.text,
-        rate: request.settings.speed,
-        volume: request.settings.volume,
-        voiceURI: request.settings.voiceURI,
-      }),
-      signal: abort.signal,
-    });
-    if (!response.ok) throw new Error(`Custom TTS endpoint returned HTTP ${response.status}.`);
+    const requestTimeout = window.setTimeout(() => abort.abort(), CUSTOM_TTS_REQUEST_TIMEOUT_MS);
+    let payload: ReturnType<typeof normalizeCustomResponse>;
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: request.text,
+          rate: request.settings.speed,
+          volume: request.settings.volume,
+          voiceURI: request.settings.voiceURI,
+        }),
+        signal: abort.signal,
+      });
+      if (!response.ok) throw new Error(`Custom TTS endpoint returned HTTP ${response.status}.`);
+      payload = normalizeCustomResponse(await response.json());
+    } catch (error) {
+      if (abort.signal.aborted) throw new Error("Custom TTS endpoint timed out.");
+      throw error;
+    } finally {
+      window.clearTimeout(requestTimeout);
+    }
 
-    const payload = normalizeCustomResponse(await response.json());
     const audio = new Audio(payload.audioUrl);
     audio.volume = request.settings.volume;
     const timers = new Set<number>();
@@ -175,7 +186,20 @@ export class CustomHttpTtsEngine implements TtsEngine {
       request.onError("Custom TTS audio playback failed.");
     });
 
-    await audio.play();
+    const releaseAudio = () => {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      if (payload.revokeUrl) URL.revokeObjectURL(payload.audioUrl);
+    };
+
+    try {
+      await audio.play();
+    } catch (error) {
+      stopped = true;
+      releaseAudio();
+      throw error;
+    }
     scheduleBoundaries(0);
 
     return {
@@ -188,17 +212,18 @@ export class CustomHttpTtsEngine implements TtsEngine {
       },
       resume: () => {
         if (stopped) return;
-        void audio.play();
+        audio.play().catch(() => {
+          if (stopped) return;
+          clearTimers();
+          request.onError("Custom TTS audio playback failed.");
+        });
         scheduleBoundaries(pausedAt);
       },
       stop: () => {
         stopped = true;
         abort.abort();
         clearTimers();
-        audio.pause();
-        audio.removeAttribute("src");
-        audio.load();
-        if (payload.revokeUrl) URL.revokeObjectURL(payload.audioUrl);
+        releaseAudio();
       },
       seekToCharIndex: (charIndex) => {
         const boundary = payload.boundaries.find((entry) => entry.charIndex >= charIndex);

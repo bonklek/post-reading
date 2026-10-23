@@ -52,7 +52,8 @@ async function boot(): Promise<void> {
   volumeInput.max = "1";
   volumeInput.step = "0.01";
   volumeInput.value = String(settings.volume);
-  volumeInput.addEventListener("input", async () => {
+  // "change" fires once on release; saving on every "input" tick can exceed storage.sync write quotas.
+  volumeInput.addEventListener("change", async () => {
     settings.volume = Number(volumeInput.value);
     await saveSettings(settings);
   });
