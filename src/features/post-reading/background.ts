@@ -12,6 +12,8 @@ type FetchTextMessage = {
 
 type BackgroundMessage = FetchJsonMessage | FetchTextMessage;
 
+const FETCH_TIMEOUT_MS = 15000;
+
 registerBackgroundMessageHandlers([{
   type: "post-reading:fetch",
   matches: isBackgroundMessage,
@@ -23,13 +25,16 @@ async function fetchPostReadingResource(message: BackgroundMessage): Promise<Rec
     if (!isAllowedFetchUrl(message.url)) {
       return { ok: false, status: 0, error: "URL is not allowed" };
     }
-    const response = await runNetworkTask(
-      () => fetch(message.url, { credentials: "omit" }),
+    return await runNetworkTask<Record<string, unknown>>(
+      async () => {
+        // Bound the whole request, body included, so a stalled connection cannot hold a network queue slot forever.
+        const response = await fetch(message.url, { credentials: "omit", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+        if (!response.ok) return { ok: false, status: response.status, error: `HTTP ${response.status}` };
+        if (message.type === "post-reading:fetchJson") return { ok: true, data: await response.json() };
+        return { ok: true, text: await response.text() };
+      },
       message.type,
     );
-    if (!response.ok) return { ok: false, status: response.status, error: `HTTP ${response.status}` };
-    if (message.type === "post-reading:fetchJson") return { ok: true, data: await response.json() };
-    return { ok: true, text: await response.text() };
   } catch (error) {
     return { ok: false, status: 0, error: error instanceof Error ? error.message : String(error) };
   }

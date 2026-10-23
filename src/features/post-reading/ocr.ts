@@ -59,13 +59,22 @@ export async function recognizeImageText(
 
   throwIfAborted(signal);
   onProgress({ imageIndex, imageCount, status: "Loading OCR host", progress: 0.05 });
-  const frame = await withAbort(withTimeout(ensureHostFrameReady(), 15000, "OCR host did not load"), signal);
+  const frame = await withAbort(withTimeout(ensureHostFrameReady(), 15000, "OCR host did not load").catch((error: unknown) => {
+    resetHostFrame();
+    throw error;
+  }), signal);
   throwIfAborted(signal);
   const id = `ocr-${Date.now()}-${++requestCounter}`;
   let lastProgress = 0.05;
 
-  const text = await withTimeout(new Promise<string>((resolve, reject) => {
+  const text = await new Promise<string>((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      postToHost(frame, { type: "post-reading-ocr-cancel", id });
+      reject(new Error("OCR timed out"));
+    }, 45000);
     const cleanup = () => {
+      window.clearTimeout(timeout);
       window.removeEventListener("message", onMessage);
       signal.removeEventListener("abort", onAbort);
     };
@@ -92,9 +101,12 @@ export async function recognizeImageText(
 
     window.addEventListener("message", onMessage);
     signal.addEventListener("abort", onAbort);
-    throwIfAborted(signal);
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
     postToHost(frame, { type: "post-reading-ocr-request", id, src: image.src });
-  }), 45000, "OCR timed out");
+  });
 
   cache.set(image.src, text);
   return text;
@@ -113,11 +125,19 @@ function ensureHostFrame(): HTMLIFrameElement {
   return frame;
 }
 
+function resetHostFrame(): void {
+  hostFrame?.remove();
+  hostFrame = null;
+  hostReadyPromise = null;
+}
+
 function ensureHostFrameReady(): Promise<HTMLIFrameElement> {
   if (hostFrame?.isConnected && hostFrame.dataset.postReadingOcrReady === "true") {
     return Promise.resolve(hostFrame);
   }
-  if (hostReadyPromise) return hostReadyPromise;
+  // A cached promise is only reusable while its frame is still in the document.
+  if (hostReadyPromise && hostFrame?.isConnected) return hostReadyPromise;
+  hostReadyPromise = null;
   const frame = ensureHostFrame();
   hostReadyPromise = new Promise((resolve, reject) => {
     const cleanup = () => {
