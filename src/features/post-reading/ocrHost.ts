@@ -14,7 +14,9 @@ type OcrCancelRequest = {
 };
 
 let workerPromise: Promise<TesseractWorker> | null = null;
+const activeRequests = new Set<string>();
 const canceledRequests = new Set<string>();
+const IMAGE_FETCH_TIMEOUT_MS = 15000;
 
 announceReady();
 
@@ -22,16 +24,21 @@ window.addEventListener("message", (event: MessageEvent<OcrRequest | OcrCancelRe
   if (event.source !== window.parent) return;
   if (!event.data) return;
   if (event.data.type === "post-reading-ocr-cancel") {
-    canceledRequests.add(event.data.id);
+    // Only remember cancels for in-flight requests; a late cancel would otherwise stay in the set forever.
+    if (activeRequests.has(event.data.id)) canceledRequests.add(event.data.id);
     return;
   }
   if (event.data.type !== "post-reading-ocr-request") return;
   canceledRequests.delete(event.data.id);
+  activeRequests.add(event.data.id);
   void recognize(event.data, event.source as Window | null);
 });
 
 async function recognize(request: OcrRequest, target: Window | null): Promise<void> {
-  if (!target) return;
+  if (!target) {
+    activeRequests.delete(request.id);
+    return;
+  }
   let lastProgress = 0;
   const sendProgress = (status: string, value: number | null) => {
     if (canceledRequests.has(request.id)) return;
@@ -57,6 +64,7 @@ async function recognize(request: OcrRequest, target: Window | null): Promise<vo
     if (canceledRequests.has(request.id)) return;
     target.postMessage({ type: "post-reading-ocr-error", id: request.id, error: errorMessage(error) }, "*");
   } finally {
+    activeRequests.delete(request.id);
     canceledRequests.delete(request.id);
   }
 }
@@ -95,9 +103,19 @@ function announceReady(): void {
 }
 
 async function fetchImageBlob(src: string): Promise<Blob> {
-  const response = await fetch(src, { credentials: "omit" });
-  if (!response.ok) throw new Error(`Could not load image for OCR: ${response.status}`);
-  return response.blob();
+  // The signal also bounds reading the body, so a stalled image download cannot hang the request.
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), IMAGE_FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(src, { credentials: "omit", signal: controller.signal });
+    if (!response.ok) throw new Error(`Could not load image for OCR: ${response.status}`);
+    return await response.blob();
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error("Image fetch for OCR timed out");
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 function progress(target: Window, id: string, status: string, value: number | null): void {
