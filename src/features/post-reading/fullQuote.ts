@@ -1,7 +1,11 @@
 import { cleanText } from "./extractText";
 import { hasExtensionRuntime, safeRuntimeMessage } from "../../shared/extensionRuntime";
 
-const cache = new Map<string, string | null>();
+const cache = new Map<string, string>();
+// Misses expire so a transient failure is retried later, but not on every request in between.
+const missCache = new Map<string, number>();
+const MISS_CACHE_TTL_MS = 60_000;
+const MISS_CACHE_MAX_ENTRIES = 200;
 const embeddedQuoteCache = new Map<string, EmbeddedQuote | null>();
 
 export type FullQuoteFetchResult = {
@@ -33,7 +37,9 @@ export async function fetchFullQuoteText(url: string, signal: AbortSignal): Prom
 export async function fetchFullQuote(url: string, signal: AbortSignal): Promise<FullQuoteFetchResult> {
   const normalizedUrl = normalizeQuoteUrl(url);
   if (!normalizedUrl) return { text: null, status: "bad-url" };
-  if (cache.has(normalizedUrl)) return { text: cache.get(normalizedUrl) ?? null, status: cache.get(normalizedUrl) ? "ok" : "cached-miss" };
+  const cached = cache.get(normalizedUrl);
+  if (cached) return { text: cached, status: "ok" };
+  if (hasFreshMiss(normalizedUrl)) return { text: null, status: "cached-miss" };
 
   const htmlText = await fetchHtmlText(normalizedUrl, signal).catch((error) => {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
@@ -62,9 +68,37 @@ export async function fetchFullQuote(url: string, signal: AbortSignal): Promise<
     return { text: embedText, status: "ok" };
   }
 
-  const text = await fetchHtmlText(normalizedUrl, signal);
-  cache.set(normalizedUrl, text);
-  return { text, status: text ? "ok" : "no-text" };
+  let failed = false;
+  const text = await fetchHtmlText(normalizedUrl, signal).catch((error) => {
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
+    failed = true;
+    return null;
+  });
+  if (text) {
+    cache.set(normalizedUrl, text);
+    return { text, status: "ok" };
+  }
+  recordMiss(normalizedUrl);
+  return { text: null, status: failed ? "http-error" : "no-text" };
+}
+
+function hasFreshMiss(url: string): boolean {
+  const expiresAt = missCache.get(url);
+  if (expiresAt === undefined) return false;
+  if (expiresAt > Date.now()) return true;
+  missCache.delete(url);
+  return false;
+}
+
+function recordMiss(url: string): void {
+  missCache.delete(url);
+  missCache.set(url, Date.now() + MISS_CACHE_TTL_MS);
+  // Map iteration is insertion-ordered, so the first keys are the oldest entries.
+  while (missCache.size > MISS_CACHE_MAX_ENTRIES) {
+    const oldest = missCache.keys().next().value;
+    if (oldest === undefined) break;
+    missCache.delete(oldest);
+  }
 }
 
 async function fetchHtmlText(url: string, signal: AbortSignal): Promise<string | null> {
@@ -132,13 +166,9 @@ async function fetchOembedText(url: string, signal: AbortSignal): Promise<string
   const endpoint = new URL("https://publish.twitter.com/oembed");
   endpoint.searchParams.set("url", url);
   endpoint.searchParams.set("omit_script", "1");
-  const response = await fetch(endpoint.toString(), {
-    credentials: "omit",
-    signal,
-  });
-  if (!response.ok) return null;
-  const data = await response.json() as { html?: string };
-  return data.html ? extractTextFromOembedHtml(data.html) : null;
+  // Route through the background worker: a content-script fetch to publish.twitter.com is subject to the page's CORS.
+  const data = await fetchJson<{ html?: string }>(endpoint.toString(), signal, "oEmbed");
+  return typeof data?.html === "string" && data.html ? extractTextFromOembedHtml(data.html) : null;
 }
 
 async function fetchSyndicationText(url: string, signal: AbortSignal): Promise<string | null> {
@@ -153,17 +183,17 @@ async function fetchSyndicationTweet(url: string, signal: AbortSignal): Promise<
   endpoint.searchParams.set("id", id);
   endpoint.searchParams.set("token", getSyndicationToken(id));
   endpoint.searchParams.set("lang", "en");
-  return await fetchSyndicationJson(endpoint.toString(), signal);
+  return await fetchJson<SyndicationTweet>(endpoint.toString(), signal, "Syndication");
 }
 
-async function fetchSyndicationJson(url: string, signal: AbortSignal): Promise<SyndicationTweet> {
+async function fetchJson<T>(url: string, signal: AbortSignal, label: string): Promise<T> {
   if (hasExtensionRuntime()) {
     const response = await sendRuntimeMessage<FetchJsonResponse>({ type: "post-reading:fetchJson", url }, signal);
-    if (!response.ok) throw new Error(`Syndication fetch failed: ${response.error || response.status}`);
-    return response.data as SyndicationTweet;
+    if (!response.ok) throw new Error(`${label} fetch failed: ${response.error || response.status}`);
+    return response.data as T;
   }
 
-  throw new Error("Extension runtime unavailable for syndication fetch");
+  throw new Error(`Extension runtime unavailable for ${label} fetch`);
 }
 
 type FetchJsonResponse =
@@ -189,7 +219,7 @@ function sendRuntimeMessage<TResponse>(message: RuntimeFetchMessage, signal: Abo
     void safeRuntimeMessage<TResponse>(message).then((response) => {
       signal.removeEventListener("abort", abort);
       if (!response) {
-        reject(new Error("Empty syndication response"));
+        reject(new Error("Empty background fetch response"));
         return;
       }
       resolve(response);

@@ -44,6 +44,7 @@ type OcrHostMessage =
 
 let hostFrame: HTMLIFrameElement | null = null;
 let hostReadyPromise: Promise<HTMLIFrameElement> | null = null;
+let hostReadyCleanup: (() => void) | null = null;
 let requestCounter = 0;
 const cache = new Map<string, string>();
 
@@ -126,6 +127,9 @@ function ensureHostFrame(): HTMLIFrameElement {
 }
 
 function resetHostFrame(): void {
+  // Detach the pending readiness listeners; otherwise they outlive the removed frame.
+  hostReadyCleanup?.();
+  hostReadyCleanup = null;
   hostFrame?.remove();
   hostFrame = null;
   hostReadyPromise = null;
@@ -138,11 +142,14 @@ function ensureHostFrameReady(): Promise<HTMLIFrameElement> {
   // A cached promise is only reusable while its frame is still in the document.
   if (hostReadyPromise && hostFrame?.isConnected) return hostReadyPromise;
   hostReadyPromise = null;
+  hostReadyCleanup?.();
+  hostReadyCleanup = null;
   const frame = ensureHostFrame();
   hostReadyPromise = new Promise((resolve, reject) => {
     const cleanup = () => {
       window.removeEventListener("message", onMessage);
       frame.removeEventListener("error", onError);
+      if (hostReadyCleanup === cleanup) hostReadyCleanup = null;
     };
     const onError = () => {
       cleanup();
@@ -157,6 +164,7 @@ function ensureHostFrameReady(): Promise<HTMLIFrameElement> {
     };
     window.addEventListener("message", onMessage);
     frame.addEventListener("error", onError, { once: true });
+    hostReadyCleanup = cleanup;
   });
   return hostReadyPromise;
 }
